@@ -1,0 +1,26 @@
+<!--
+  This is a REFERENCE only -- Android Studio already creates
+  AndroidManifest.xml for you when you make the new project.
+  Just make sure your <application> tag looks like this
+  (label and theme lines especially), and that minSdk is 21
+  in app/build.gradle (see README.md).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:label="Bible Search KJV"
+        android:theme="@style/Theme.AppCompat.Light"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>
