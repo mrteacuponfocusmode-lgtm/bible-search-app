@@ -5,6 +5,37 @@
     android:orientation="vertical"
     android:padding="12dp">
 
+    <RadioGroup
+        android:id="@+id/testamentFilter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+
+        <RadioButton
+            android:id="@+id/filterAll"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="All"
+            android:checked="true" />
+
+        <RadioButton
+            android:id="@+id/filterOT"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Old Testament" />
+
+        <RadioButton
+            android:id="@+id/filterNT"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="New Testament" />
+
+    </RadioGroup>
+
     <EditText
         android:id="@+id/searchBox"
         android:layout_width="match_parent"
@@ -14,6 +45,20 @@
         android:padding="12dp"
         android:background="@android:drawable/edit_text"
         android:autofillHints="" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/suggestionsContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+
+    </HorizontalScrollView>
 
     <TextView
         android:id="@+id/emptyView"
