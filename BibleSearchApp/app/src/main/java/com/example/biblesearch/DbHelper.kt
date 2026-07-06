@@ -4,20 +4,15 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import java.io.FileOutputStream
 
-/**
- * Opens the read-only "kjv.db" that is bundled inside assets/.
- * Android can't query a database directly from assets, so on first
- * launch we copy it into the app's private storage, then reuse that
- * copy on every future launch. Everything happens fully offline.
- */
 class DbHelper(private val context: Context) {
 
-    private val dbName = "kjv_v2.db"
+    private val dbName = "kjv_v3.db"
     private var database: SQLiteDatabase? = null
+
+    enum class Testament { ALL, OLD, NEW }
 
     fun open(): SQLiteDatabase {
         database?.let { return it }
-
         val dbFile = context.getDatabasePath(dbName)
         if (!dbFile.exists()) {
             dbFile.parentFile?.mkdirs()
@@ -34,30 +29,26 @@ class DbHelper(private val context: Context) {
         return db
     }
 
-    /**
-     * Exact whole-word / whole-phrase search (NOT a substring match).
-     * Searching "log" will match the word "log" but not "dialogue" or
-     * "catalog". Multi-word queries match that exact word sequence,
-     * e.g. "the Lord is my shepherd" only matches verses containing
-     * that phrase, not verses with those words scattered separately.
-     */
-    fun search(query: String): List<Verse> {
+    /** Exact whole-word / whole-phrase search, optionally filtered by testament. */
+    fun search(query: String, testament: Testament): List<Verse> {
         val trimmed = query.trim()
         if (trimmed.isBlank()) return emptyList()
         val db = open()
         val results = mutableListOf<Verse>()
 
-        // Escape any quotes the user typed, then wrap the whole query
-        // in quotes so FTS treats it as one exact phrase/word rather
-        // than "any of these words anywhere".
         val escaped = trimmed.replace("\"", "\"\"")
         val ftsQuery = "\"$escaped\""
 
-        val cursor = db.rawQuery(
-            "SELECT book, chapter, verse, text FROM verses " +
-                "WHERE verses MATCH ? ORDER BY rowid LIMIT 300",
-            arrayOf(ftsQuery)
-        )
+        val sql = when (testament) {
+            Testament.ALL -> "SELECT book, chapter, verse, text FROM verses " +
+                "WHERE verses MATCH ? ORDER BY rowid LIMIT 300"
+            Testament.OLD -> "SELECT book, chapter, verse, text FROM verses " +
+                "WHERE verses MATCH ? AND testament = 'OT' ORDER BY rowid LIMIT 300"
+            Testament.NEW -> "SELECT book, chapter, verse, text FROM verses " +
+                "WHERE verses MATCH ? AND testament = 'NT' ORDER BY rowid LIMIT 300"
+        }
+
+        val cursor = db.rawQuery(sql, arrayOf(ftsQuery))
         cursor.use {
             while (it.moveToNext()) {
                 results.add(
@@ -68,6 +59,24 @@ class DbHelper(private val context: Context) {
                         text = it.getString(3)
                     )
                 )
+            }
+        }
+        return results
+    }
+
+    /** Tap-to-complete word suggestions based on the word currently being typed. */
+    fun suggestWords(prefix: String, limit: Int = 8): List<String> {
+        val cleaned = prefix.trim().lowercase()
+        if (cleaned.length < 2) return emptyList()
+        val db = open()
+        val results = mutableListOf<String>()
+        val cursor = db.rawQuery(
+            "SELECT word FROM words WHERE word LIKE ? ORDER BY freq DESC LIMIT ?",
+            arrayOf("$cleaned%", limit.toString())
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                results.add(it.getString(0))
             }
         }
         return results
