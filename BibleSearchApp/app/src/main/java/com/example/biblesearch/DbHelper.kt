@@ -29,15 +29,24 @@ class DbHelper(private val context: Context) {
         return db
     }
 
-    /** Exact whole-word / whole-phrase search, optionally filtered by testament. */
+    /**
+     * Prefix search: typing "belie" finds "believed", "believeth", etc.
+     * Each typed word gets a trailing * (SQLite FTS prefix wildcard),
+     * so you don't have to finish typing a word to get matches.
+     */
     fun search(query: String, testament: Testament): List<Verse> {
         val trimmed = query.trim()
         if (trimmed.isBlank()) return emptyList()
         val db = open()
         val results = mutableListOf<Verse>()
 
-        val escaped = trimmed.replace("\"", "\"\"")
-        val ftsQuery = "\"$escaped\""
+        val words = trimmed
+            .split(Regex("\\s+"))
+            .filter { it.isNotBlank() }
+            .map { it.replace("\"", "").replace("*", "") + "*" }
+
+        if (words.isEmpty()) return emptyList()
+        val ftsQuery = words.joinToString(" ")
 
         val sql = when (testament) {
             Testament.ALL -> "SELECT book, chapter, verse, text FROM verses " +
@@ -59,24 +68,6 @@ class DbHelper(private val context: Context) {
                         text = it.getString(3)
                     )
                 )
-            }
-        }
-        return results
-    }
-
-    /** Tap-to-complete word suggestions based on the word currently being typed. */
-    fun suggestWords(prefix: String, limit: Int = 8): List<String> {
-        val cleaned = prefix.trim().lowercase()
-        if (cleaned.length < 2) return emptyList()
-        val db = open()
-        val results = mutableListOf<String>()
-        val cursor = db.rawQuery(
-            "SELECT word FROM words WHERE word LIKE ? ORDER BY freq DESC LIMIT ?",
-            arrayOf("$cleaned%", limit.toString())
-        )
-        cursor.use {
-            while (it.moveToNext()) {
-                results.add(it.getString(0))
             }
         }
         return results
